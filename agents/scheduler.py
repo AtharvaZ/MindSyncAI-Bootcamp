@@ -212,13 +212,8 @@ def _llm_plan_advice(
 
     try:
 
-        # TODO: Create the LangChain Expression Language (LCEL) chain.
-        # It should pipe the prompt (_LLM_SCHED_PROMPT), the LLM, and a structured output parser for the `PlanAdvice` model.
-        # HINT: chain = prompt | llm.with_structured_output(...)
         chain = _LLM_SCHED_PROMPT | llm.with_structured_output(PlanAdvice)
 
-        # TODO: Invoke the chain with all the required inputs to get the advice.
-        # HINT: The inputs are day, start_h, end_h, energy_summary, and task_table.
         advice: PlanAdvice = chain.invoke ({
             "day":day.isoformat(),
             "start_h": work_start_h,

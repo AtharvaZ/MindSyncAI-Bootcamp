@@ -211,16 +211,23 @@ def _llm_plan_advice(
     energy_summary = _summarize_energy(energy_curve)
 
     try:
+
+        # TODO: Create the LangChain Expression Language (LCEL) chain.
+        # It should pipe the prompt (_LLM_SCHED_PROMPT), the LLM, and a structured output parser for the `PlanAdvice` model.
+        # HINT: chain = prompt | llm.with_structured_output(...)
         chain = _LLM_SCHED_PROMPT | llm.with_structured_output(PlanAdvice)
 
-        advice: PlanAdvice = chain.invoke({
-            "day": day.isoformat(),
+        # TODO: Invoke the chain with all the required inputs to get the advice.
+        # HINT: The inputs are day, start_h, end_h, energy_summary, and task_table.
+        advice: PlanAdvice = chain.invoke ({
+            "day":day.isoformat(),
             "start_h": work_start_h,
-            "end_h": work_end_h,
+            "end_h":work_end_h,
             "energy_summary": energy_summary,
-            "task_table": task_table
+            "task_table": task_table,
         })
         
+        # --- End of Coding Section ---
 
         if advice and advice.chunk_minutes:
             advice.chunk_minutes = {

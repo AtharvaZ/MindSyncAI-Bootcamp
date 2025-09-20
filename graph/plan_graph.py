@@ -20,31 +20,28 @@ class State(TypedDict, total=False):
 
 def node_parse(state: State) -> State:
     """Raw text → Task"""
-    # TODO: Get "raw_text" from the state, call the parse_task agent,
-    # and update the state with the new "task".
-    pass
+    state['task'] = parse_task(state['raw_text'])
+    return state
 
 
 def node_classify(state: State) -> State:
     """Task → (effort, confidence)"""
-    # TODO: Get the "task" from the state, call the classify_effort agent,
-    # and update the "task" in the state with the result.
-    pass
+    state['task'] = classify_effort(state['task'])
+    return state
 
 
 def node_schedule(state: State) -> State:
     """Task(+effort) → DayPlan (today by default)"""
-    # TODO: Get the "task" from the state, call the greedy_schedule agent,
-    # and update the state with the new "plan".
-    # HINT: You'll need to determine the target_day from the task's deadline.
-    pass
+    task = state['task']
+    target_day = task.deadline if task.deadline else date.today()
+    state['plan'] = greedy_schedule(task, target_day)
+    return state
 
 
 def node_summary(state: State) -> State:
     """DayPlan → DailySummary (rule-based tips by default)"""
-    # TODO: Get the "plan" from the state, call the summarize agent,
-    # and update the state with the new "summary".
-    pass
+    state['summary'] = summarize(state['plan'], completed_titles=[])
+    return state
 
 
 def build_graph():
@@ -52,17 +49,25 @@ def build_graph():
     Returns a compiled LangGraph app that runs:
         parse → classify → schedule → summary
     """
-    # TODO: Create a StateGraph instance.
-    g = None
+    # StateGraph instance.
+    g = StateGraph()
 
-    # TODO: Add the four nodes you just defined to the graph.
-    pass
+    # the four nodes
+    g.add_node(node_parse, name="parse")
+    g.add_node(node_classify, name="classify")
+    g.add_node(node_schedule, name="schedule")
+    g.add_node(node_summary, name="summary")
 
-    # TODO: Set the entry point and add the edges to connect the nodes in sequence.
-    pass
+    # entry point and the edges to connect the nodes in sequence.
+    g.set_entry_point("parse")
+    g.add_edge("parse", "classify")
+    g.add_edge("classify", "schedule")
+    g.add_edge("schedule", "summary")
+    g.add_edge("summary", END)
 
-    # TODO: Compile and return the graph.
-    pass
+    # Compile and return
+    g.compile()
+    return g
 
 
 def run_once(raw_text: str) -> State:
@@ -70,7 +75,7 @@ def run_once(raw_text: str) -> State:
     Convenience wrapper used by app.py:
     input raw text → returns final state with task, plan, summary.
     """
-    # TODO: Build the graph, invoke it with the initial state, and return the final state.
-    # HINT: The initial state is {"raw_text": raw_text}
-    pass
+    app = build_graph()
+    state: State = app.invoke({"raw_text": raw_text})
+    return state
 

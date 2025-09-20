@@ -94,7 +94,20 @@ class Advice(BaseModel):
 _LLM_SUMMARY_PROMPT = None
 if ChatPromptTemplate is not None:
     _LLM_SUMMARY_PROMPT = ChatPromptTemplate.from_messages([
-        #put your prompt here
+        ("system", 
+         "You are a concise planning coach. Given the plan metrics and the context, produce up to three brief, actionable suggestions to improve the user's daily planning."
+         "Avoid fluff. Avoid giving generic time management advice. Use the context to tailor your suggestions."
+         "Return JSON: {\"suggestions\": [\"tip1\", \"tip2\", ...]}")
+         ("human",
+          "Date: {date}\n"
+          "Profile: {profile}\n"
+          "Work hours: {work_start_h}:00-{work_end_h}:00\n"
+          "Energy alignment: {energy_alignment}\n"
+          "Flow minutes: {flow_minutes}\n"
+          "Planned blocks:\n{blocks_table}\n"
+          "If energy_alignment < 0.6, recommend a concrete morning/afternoon adjustment shift."
+          "If many small blocks, suggest grouping and buffers."
+          "Keep Suggestions concise and actionable. Return JSON only.")
     ])
 
 

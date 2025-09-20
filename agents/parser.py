@@ -42,13 +42,35 @@ class TaskDraft(BaseModel):
     fixed_end: Optional[str] = None
 
 _BASE_RULES = (
+    "Return only the fields defined in the schema."
+    "Convert durations like '2h', '1.5 houts', '45min' into integer minutes."
+    "If explicit time windows appear (eg: '14:00-15:30', '2pm - 3pm', 'Fri 11am'),"
+    "put them in fixed_start and fixed_end as-is."
+    "If only a single time appears (eg: 'at 3pm', 'by 14:00', 'tomorrow at 10'), put it in fixed_start as-is"
+    "and set fixed_end to est_minutes later."
+    "If a deadline is mentioned (eg: 'due Friday 18:00', 'by 5pm tomorrow', 'due today 5pm'),"
+    "as a DEADLINE (deadline field). NOT as a fixed_start or fixed_end. Never set fixed start/" \
+    "end from 'due'"
     )
 
 PARSER_PROMPT_LENIENT = ChatPromptTemplate.from_messages([
-    
+    ("system", "Extract a single TASK JSON musing this schema:"
+     "title (string), est_minutes (int), deadline (string or null), tags(list[str]),"
+     "notes (string or null), fixed_start (string or null), fixed_end (string or null)."
+     + _BASE_RULES),
+     ("human", "{raw_text}"),
 ])
 
 PARSER_PROMPT_STRICT = ChatPromptTemplate.from_messages([
+    ("system",
+     'Extract a single Task JSON using this schema:'
+     "title (string), est_minutes (int), deadline (ISO8601 string|null),tags(list[str]),"
+     "notes(string|null), fixed_start (ISO8601 string|null), fixed_end (ISO8601 string|null)."
+     + _BASE_RULES),
+     "IMPORTANT: Never output words like 'today' or 'tomorrow'; use ISO format only."
+     "Always convert to full ISO 8601 (e.g: 2024-03-15T14:30:00)"
+     "If a relative day has no time, use 17:00 as the default time."
+     ("human", "{raw_text}")
     ])
 
 
@@ -155,31 +177,18 @@ def parse_task(raw_text: str) -> Task:
     """
     llm = _get_llm()
 
-    # --- START OF THE CODING EXERCISE ---
-
-    # TODO: Build the "lenient" chain.
-    # It should pipe the lenient prompt, the LLM, and a structured output parser for the `TaskDraft` model.
-    # HINT: chain = prompt | llm.with_structured_output(...)
-    draft_chain = None 
+    draft_chain = PARSER_PROMPT_LENIENT | llm.with_structured_output(TaskDraft)
+    draft = draft_chain.invoke({"raw_text": raw_text}) 
     
-    # TODO: Invoke the lenient chain with the raw_text to get an initial draft.
-    # HINT: chain.invoke({"variable_name": raw_text})
-    draft = None 
-
     try:
         return _finalize_task(raw_text, draft)
     except Exception:
-        # The first attempt failed, so we fall back to a stricter prompt.
-        
-        # TODO: Build the "strict" chain using PARSER_PROMPT_STRICT.
-        strict_chain = None 
-        
-        # TODO: Invoke the strict chain to get the second draft.
-        draft2 = None 
+        strict_chain = PARSER_PROMPT_STRICT | llm.with_structured_output(TaskDraft)
+        draft2 = strict_chain.invoke({"raw_text": raw_text}) 
         
         return _finalize_task(raw_text, draft2)
+    
 
-    # --- END OF THE CODING EXERCISE ---
 
 def parse_tasks(texts: list[str]) -> list[Task]:
     return [parse_task(t) for t in texts]
